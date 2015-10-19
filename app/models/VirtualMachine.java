@@ -18,7 +18,6 @@
 
 package models;
 
-import com.google.common.collect.Iterables;
 import models.generic.RemoteResourceInLocation;
 
 import javax.annotation.Nullable;
@@ -41,10 +40,10 @@ import java.util.*;
     @Nullable @ManyToOne(optional = true) private TemplateOptions templateOptions;
 
     /**
-     * Use cascade type merge due to bug in all
+     * Use set to avoid duplicate entries due to hibernate bug
      * https://hibernate.atlassian.net/browse/HHH-7404
      */
-    @OneToMany(mappedBy = "virtualMachine", cascade = CascadeType.MERGE) private List<IpAddress>
+    @OneToMany(mappedBy = "virtualMachine", cascade = CascadeType.ALL) private Set<IpAddress>
         ipAddresses;
 
     /**
@@ -54,10 +53,11 @@ import java.util.*;
     }
 
     public VirtualMachine(@Nullable String remoteId, @Nullable String cloudProviderId, Cloud cloud,
-        Location location, String name, @Nullable String generatedLoginUsername,
-        @Nullable String generatedLoginPassword, @Nullable Image image, @Nullable Hardware hardware,
+        @Nullable CloudCredential owner, Location location, String name,
+        @Nullable String generatedLoginUsername, @Nullable String generatedLoginPassword,
+        @Nullable Image image, @Nullable Hardware hardware,
         @Nullable TemplateOptions templateOptions) {
-        super(remoteId, cloudProviderId, cloud, location);
+        super(remoteId, cloudProviderId, cloud, owner, location);
         this.name = name;
         this.generatedLoginUsername = generatedLoginUsername;
         this.generatedLoginPassword = generatedLoginPassword;
@@ -76,32 +76,26 @@ import java.util.*;
 
     public void addIpAddress(IpAddress ipAddress) {
         if (ipAddresses == null) {
-            this.ipAddresses = new ArrayList<>();
+            this.ipAddresses = new HashSet<>();
         }
         this.ipAddresses.add(ipAddress);
     }
 
     public Optional<IpAddress> publicIpAddress() {
-        final Iterable<IpAddress> ipAddresses = Iterables.filter(this.ipAddresses, ipAddress -> {
-            return ipAddress.getIpType().equals(IpType.PUBLIC);
-        });
-        if (ipAddresses.iterator().hasNext()) {
-            return Optional.of(ipAddresses.iterator().next());
-        }
-        return Optional.empty();
+        return ipAddresses.stream().filter(ipAddress -> ipAddress.getIpType().equals(IpType.PUBLIC))
+            .findAny();
     }
 
     public Optional<IpAddress> privateIpAddress(boolean fallbackToPublic) {
-        final Iterable<IpAddress> ipAddresses = Iterables.filter(this.ipAddresses, ipAddress -> {
-            return ipAddress.getIpType().equals(IpType.PRIVATE);
-        });
-        if (ipAddresses.iterator().hasNext()) {
-            Optional.of(ipAddresses.iterator().next());
-        }
-        if (fallbackToPublic) {
+
+        final Optional<IpAddress> any =
+            ipAddresses.stream().filter(ipAddress -> ipAddress.getIpType().equals(IpType.PRIVATE))
+                .findAny();
+
+        if (!any.isPresent() && fallbackToPublic) {
             return publicIpAddress();
         }
-        return Optional.empty();
+        return any;
     }
 
     public String name() {

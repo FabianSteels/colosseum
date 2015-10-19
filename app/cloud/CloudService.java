@@ -31,7 +31,7 @@ import de.uniulm.omi.cloudiator.sword.api.service.DiscoveryService;
  */
 public interface CloudService {
 
-    DiscoveryService<HardwareInLocation, ImageInLocation, LocationInCloud, VirtualMachineInLocation> getDiscoveryService();
+    DiscoveryService<HardwareInLocation, ImageInLocation, LocationInCloud, VirtualMachineInLocation> discoveryService();
 
     ColosseumComputeService computeService();
 }

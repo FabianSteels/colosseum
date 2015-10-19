@@ -16,24 +16,18 @@
  * under the License.
  */
 
-package dtos.conversion.converters;
-
-import dtos.conversion.AbstractConverter;
-import dtos.generic.RemoteDto;
-import models.generic.RemoteResource;
+package controllers.generic;
 
 /**
- * Created by daniel on 10.08.15.
+ * Created by daniel on 14.10.15.
  */
-public abstract class RemoteConverter<T extends RemoteResource, S extends RemoteDto>
-    extends AbstractConverter<T, S> {
+public class BadRequestException extends Exception {
 
-    protected RemoteConverter(Class<T> t, Class<S> s) {
-        super(t, s);
+    public BadRequestException(String message) {
+        super(message);
     }
 
-    @Override public void configure() {
-        binding().fromField("remoteId").toField("remoteId");
-        binding().fromField("cloudProviderId").toField("cloudProviderId");
+    public BadRequestException(String message, Throwable cause) {
+        super(message, cause);
     }
 }
