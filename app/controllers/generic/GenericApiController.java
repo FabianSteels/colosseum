@@ -385,8 +385,8 @@ public abstract class GenericApiController<T extends Model, U extends Dto, V ext
      * @param entity the entity state before the put operating.
      * @throws BadRequestException if the request should be canceled.
      */
-    protected void prePut(W putDto, T entity) throws BadRequestException {
-        //intentionally left empty
+    protected String prePut(W putDto, T entity) throws BadRequestException {
+        return null;
     }
 
     /**
