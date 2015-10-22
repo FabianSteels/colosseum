@@ -197,6 +197,10 @@ public class DatabaseServiceModule extends AbstractModule {
         bind(new TypeLiteral<ModelService<PortProvided>>() {
         }).to(new TypeLiteral<BaseModelService<PortProvided>>() {
         });
+        //PaasageService
+        bind(new TypeLiteral<ModelService<PaasageModel>>() {
+        }).to(new TypeLiteral<BaseModelService<PaasageModel>>() {
+        });
         //VirtualMachine
         bind(new TypeLiteral<ModelService<VirtualMachine>>() {
         }).to(new TypeLiteral<BaseModelService<VirtualMachine>>() {
@@ -209,5 +213,6 @@ public class DatabaseServiceModule extends AbstractModule {
         bind(new TypeLiteral<ModelService<Window>>() {
         }).to(new TypeLiteral<BaseModelService<Window>>() {
         });
+
     }
 }

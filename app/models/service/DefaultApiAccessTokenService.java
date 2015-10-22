@@ -52,6 +52,9 @@ public class DefaultApiAccessTokenService extends BaseModelService<ApiAccessToke
         checkNotNull(token);
         checkNotNull(frontendUser);
         for (ApiAccessToken apiAccessToken : getNonExpiredTokensForFrontendUser(frontendUser)) {
+            System.out.println("FS-DB: "+apiAccessToken.getToken());
+            System.out.println("FS-Request: "+token);
+            System.out.println("FS-"+apiAccessToken.getToken().equals(token));
             if (apiAccessToken.getToken().equals(token)) {
                 return true;
             }

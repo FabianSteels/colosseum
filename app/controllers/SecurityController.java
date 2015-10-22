@@ -41,7 +41,7 @@ public class SecurityController extends Controller {
 
     private static final Form<LoginDto> loginForm = Form.form(LoginDto.class);
     private final FrontendUserService frontendUserService;
-    private final ApiAccessTokenService apiAccessTokenService;
+    private final ApiAccessTokenService apiAccessTokenService;// FS- token manager
 
     @Inject public SecurityController(FrontendUserService frontendUserService,
         ApiAccessTokenService apiAccessTokenService) {
