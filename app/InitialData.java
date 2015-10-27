@@ -46,6 +46,7 @@ public class InitialData {
         /**
          * Creates a default system user and a default tenant.
          */
+
         if (frontendUserService.getAll().isEmpty()) {
             Tenant tenant = null;
             for (Tenant storedTenant : tenantModelService.getAll()) {
@@ -60,9 +61,11 @@ public class InitialData {
             }
 
             FrontendUser frontendUser =
-                new FrontendUser("John", "Doe", "admin", "john.doe@example.com");
+                    new FrontendUser("John", "Doe", "admin", "john.doe@example.com");
             frontendUserService.save(frontendUser);
             tenant.getFrontendUsers().add(frontendUser);
+            System.out.println("FS- init data backend ");
+            loadBackendUser(tenant);
             tenantModelService.save(tenant);
 
         }
@@ -97,5 +100,14 @@ public class InitialData {
         }
 
 
+    }
+
+    private void loadBackendUser(Tenant tenant)
+    {
+        // user for backend access
+        FrontendUser frontendUser = new FrontendUser("Backend", "User", "turlututuchapeaupointu", "backend@paasage.net") ;
+        frontendUserService.save(frontendUser);
+        tenant.getFrontendUsers().add(frontendUser);
+        tenantModelService.save(tenant);
     }
 }

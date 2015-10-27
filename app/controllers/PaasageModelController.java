@@ -143,7 +143,7 @@ public class PaasageModelController extends GenericApiController<PaasageModel, P
     {
         StateMachine<PaasageModel.State, PaasageModel.Action> modelState;
         //TODO: use user specific or system specific FSM
-        if ("backedn@paasage.net".equalsIgnoreCase(request().username())) {
+        if ("backend@paasage.net".equalsIgnoreCase(request().username())) {
            modelState = new StateMachine<>(current.getState(), passageModelStateConfigForSystem);
         }
         else {
@@ -181,6 +181,10 @@ public class PaasageModelController extends GenericApiController<PaasageModel, P
         return null;
     }
 
+    /**
+     * upload xmi model
+     * @param updated
+     */
     @Override
     protected void postPut(PaasageModel updated) {
         PaasageMessage message = new PaasageMessage(updated.getId(), updated.getAction().toString());

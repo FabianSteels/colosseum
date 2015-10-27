@@ -1,5 +1,6 @@
 package components.messaging.impl;
 
+import components.zeromq.BackendPublisher;
 import play.Logger;
 
 import play.modules.rabbitmq.producer.RabbitMQPublisher;
@@ -18,6 +19,8 @@ public class MessagingService implements MessagingServiceInterface {
         checkNotNull(queue);
         checkNotNull(message);
         Logger.debug("About to publish this message" + message.toString() + " to queue " + queue.toString());
-        RabbitMQPublisher.publish(queue,message);
+
+        //RabbitMQPublisher.publish(queue,message); Could be deleted
+        BackendPublisher.getInstance().publish(queue, message);
     }
 }

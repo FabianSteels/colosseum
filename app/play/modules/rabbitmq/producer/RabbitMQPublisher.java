@@ -44,7 +44,8 @@ public abstract class RabbitMQPublisher {
 		try {
             // FIXME: use true async job
 //			new RabbitMQPublisherJob(queueName, message).doJobWithResult();
-            new RabbitMQPublisherJob(queueName, message).doJob();
+			RabbitMQPublisherJob rpj = new RabbitMQPublisherJob(queueName, message);
+			rpj.doJob();
 		} catch (Throwable t) {
 			Logger.error(ExceptionUtil.getStackTrace(t));
 		}
@@ -128,6 +129,9 @@ public abstract class RabbitMQPublisher {
 
 				// Create Channel
 				RabbitMQPlugin plugin = Play.application().plugin(RabbitMQPlugin.class);
+				System.out.println("FS- plugin "+plugin);
+				System.out.println("FS- q "+this.queueName);
+				System.out.println("FS- r "+this.routingKey);
 				channel = plugin.createChannel(this.queueName, this.routingKey);
 				if (channel == null) {
 					throw new RuntimeException("Error creating a communication channel with RabbitMQ. Please verify the health of your RabbitMQ node and check your configuration.");
