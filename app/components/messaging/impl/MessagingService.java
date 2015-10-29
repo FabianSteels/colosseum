@@ -3,7 +3,6 @@ package components.messaging.impl;
 import components.zeromq.BackendPublisher;
 import play.Logger;
 
-import play.modules.rabbitmq.producer.RabbitMQPublisher;
 import components.messaging.MessagingServiceInterface;
 import components.messaging.MessageBase;
 

@@ -4,6 +4,11 @@ import java.io.Serializable;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
+import java.io.IOException;
+import org.codehaus.jackson.JsonGenerationException;
+import org.codehaus.jackson.map.JsonMappingException;
+import org.codehaus.jackson.map.ObjectMapper;
+
 /**
  * Created by ec on 7/03/15.
  * Base class for all messages pushed on the messaging ( RabbitMQ)
@@ -29,5 +34,10 @@ public abstract class MessageBase implements Serializable {
         return "MessageBase{" +
                 "name='" + name + '\'' +
                 '}';
+    }
+
+    public String toJson() throws JsonGenerationException, JsonMappingException, IOException{
+        ObjectMapper mapper = new ObjectMapper();
+        return mapper.writeValueAsString(this);
     }
 }

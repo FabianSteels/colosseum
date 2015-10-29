@@ -2,6 +2,7 @@ package components.messaging;
 
 import java.io.Serializable;
 
+
 /**
  * Created by ec on 7/03/15.
  */
@@ -37,4 +38,5 @@ public class PaasageMessage extends MessageBase implements Serializable{
                 ", action='" + action + '\'' +
                 '}';
     }
+
 }
