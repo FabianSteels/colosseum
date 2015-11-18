@@ -289,3 +289,4 @@ GET           /api/model/:id                       @controllers.PaasageModelCont
 POST          /api/model                           @controllers.PaasageModelController.post()
 PUT           /api/model/:id                       @controllers.PaasageModelController.put(id: Long)
 DELETE        /api/model/:id                       @controllers.PaasageModelController.delete(id: Long)
+GET           /api/model/:attribute/:value         @controllers.PaasageModelController.search(attribute: String, value: String)
