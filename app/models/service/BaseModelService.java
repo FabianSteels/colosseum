@@ -20,7 +20,7 @@ package models.service;
 
 import com.google.inject.Inject;
 import models.generic.Model;
-import util.Loggers;
+import util.logging.Loggers;
 
 import javax.annotation.Nullable;
 import java.util.List;
@@ -32,7 +32,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
  */
 public class BaseModelService<T extends Model> implements ModelService<T> {
 
-    play.Logger.ALogger LOGGER = Loggers.of(Loggers.DATABASE);
+    private static final play.Logger.ALogger LOGGER = Loggers.of(Loggers.DATABASE);
 
     protected final ModelRepository<T> modelRepository;
 

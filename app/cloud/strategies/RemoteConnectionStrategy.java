@@ -20,20 +20,17 @@ package cloud.strategies;
 
 import components.execution.Prioritized;
 import de.uniulm.omi.cloudiator.sword.api.remote.RemoteConnection;
-import models.Tenant;
+import de.uniulm.omi.cloudiator.sword.api.remote.RemoteException;
 import models.VirtualMachine;
-
-import java.util.function.Function;
 
 /**
  * Created by daniel on 01.09.15.
  */
-public interface RemoteConnectionStrategy
-    extends Function<VirtualMachine, RemoteConnection>, Prioritized {
+public interface RemoteConnectionStrategy extends Prioritized {
 
-    boolean isApplicable(VirtualMachine virtualMachine);
+    RemoteConnection connect(VirtualMachine virtualMachine) throws RemoteException;
 
     interface RemoteConnectionStrategyFactory {
-        RemoteConnectionStrategy create(Tenant tenant);
+        RemoteConnectionStrategy create();
     }
 }

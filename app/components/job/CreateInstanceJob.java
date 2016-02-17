@@ -37,10 +37,13 @@ import de.uniulm.omi.cloudiator.lance.lifecycle.LifecycleHandlerType;
 import de.uniulm.omi.cloudiator.lance.lifecycle.LifecycleStore;
 import de.uniulm.omi.cloudiator.lance.lifecycle.LifecycleStoreBuilder;
 import de.uniulm.omi.cloudiator.lance.lifecycle.bash.BashBasedHandlerBuilder;
+import de.uniulm.omi.cloudiator.lance.lifecycle.detector.DefaultDetectorFactories;
 import de.uniulm.omi.cloudiator.lance.lifecycle.detector.PortUpdateHandler;
 import models.*;
 import models.generic.RemoteState;
 import models.service.ModelService;
+import models.service.RemoteModelService;
+import play.db.jpa.JPA;
 
 import javax.annotation.Nullable;
 import java.util.Map;
@@ -50,58 +53,69 @@ import static com.google.common.base.Preconditions.checkState;
 /**
  * Created by daniel on 03.08.15.
  */
-public class CreateInstanceJob extends GenericJob<Instance> {
+public class CreateInstanceJob extends AbstractRemoteResourceJob<Instance> {
 
-    private final Instance instance;
-
-    @Inject public CreateInstanceJob(Instance instance, ModelService<Instance> modelService,
+    @Inject public CreateInstanceJob(Instance instance, RemoteModelService<Instance> modelService,
         ModelService<Tenant> tenantModelService, ColosseumComputeService colosseumComputeService,
         Tenant tenant) {
         super(instance, modelService, tenantModelService, colosseumComputeService, tenant);
-        this.instance = instance;
     }
 
-    @Override protected void doWork(Instance instance, ModelService<Instance> modelService,
-        ColosseumComputeService computeService, Tenant tenant) throws JobException {
+    @Override protected void doWork(ModelService<Instance> modelService,
+        ColosseumComputeService computeService) throws JobException {
+
         try {
-            buildClient(instance);
-        } catch (RegistrationException | LcaException | ContainerException e) {
-            throw new JobException(e);
+            JPA.withTransaction("default", true, () -> {
+
+                Instance instance = getT();
+                LifecycleClient client;
+                DeploymentContext deploymentContext;
+                DeployableComponent deployableComponent;
+                synchronized (CreateInstanceJob.class) {
+
+
+
+                    client = LifecycleClient.getClient();
+                    final ApplicationInstanceId applicationInstanceId = ApplicationInstanceId
+                        .fromString(instance.getApplicationInstance().getUuid());
+
+                    final ApplicationId applicationId = ApplicationId
+                        .fromString(instance.getApplicationInstance().getApplication().getUuid());
+
+                    //register application instance
+                    final boolean couldRegister;
+                    try {
+                        couldRegister = client
+                            .registerApplicationInstance(applicationInstanceId, applicationId);
+                    } catch (RegistrationException e) {
+                        throw new JobException(e);
+                    }
+                    if (couldRegister) {
+                        try {
+                            registerApplicationComponents(instance, applicationInstanceId, client);
+                        } catch (RegistrationException e) {
+                            throw new JobException(e);
+                        }
+                    }
+                    deploymentContext = buildDeploymentContext(instance,
+                        client.initDeploymentContext(applicationId, applicationInstanceId));
+                    checkState(instance.getVirtualMachine().publicIpAddress().isPresent());
+                    deployableComponent = buildDeployableComponent(instance);
+
+                }
+                try {
+                    client.deploy(instance.getVirtualMachine().publicIpAddress().get().getIp(),
+                        deploymentContext, deployableComponent,
+                        instance.getVirtualMachine().operatingSystemVendorTypeOrDefault().lanceOs(),
+                        instance.getApplicationComponent().containerTypeOrDefault());
+                } catch (LcaException | RegistrationException | ContainerException e) {
+                    throw new JobException(e);
+                }
+                return null;
+            });
+        } catch (Throwable throwable) {
+            throw new JobException(throwable);
         }
-        modelService.save(instance);
-    }
-
-    private LifecycleClient buildClient(Instance instance)
-        throws RegistrationException, LcaException, ContainerException {
-
-        final LifecycleClient client = LifecycleClient.getClient();
-        final ApplicationInstanceId applicationInstanceId =
-            ApplicationInstanceId.fromString(instance.getApplicationInstance().getUuid());
-
-        final ApplicationId applicationId =
-            ApplicationId.fromString(instance.getApplicationInstance().getApplication().getUuid());
-
-        //register application instance
-        final boolean couldRegister =
-            client.registerApplicationInstance(applicationInstanceId, applicationId);
-
-        if (couldRegister) {
-            registerApplicationComponents(instance, applicationInstanceId, client);
-        }
-
-        final DeploymentContext deploymentContext = buildDeploymentContext(instance,
-            client.initDeploymentContext(applicationId, applicationInstanceId));
-
-        checkState(instance.getVirtualMachine().publicIpAddress().isPresent());
-
-        client
-            .deploy(instance.getVirtualMachine().publicIpAddress().get().getIp(), deploymentContext,
-                buildDeployableComponent(instance),
-                instance.getVirtualMachine().operatingSystemVendorTypeOrDefault().lanceOs(),
-                instance.getApplicationComponent().containerTypeOrDefault());
-
-        return client;
-
     }
 
     private void registerApplicationComponents(Instance instance,
@@ -125,7 +139,7 @@ public class CreateInstanceJob extends GenericJob<Instance> {
         // add all ingoing ports / provided ports
         for (PortProvided portProvided : instance.getApplicationComponent().getProvidedPorts()) {
             PortProperties.PortType portType;
-            if (portProvided.getAttachedCommunication() == null) {
+            if (portProvided.getAttachedCommunications().isEmpty()) {
                 portType = PortProperties.PortType.PUBLIC_PORT;
             } else {
                 // todo should be internal, but for the time being we use public here
@@ -149,8 +163,15 @@ public class CreateInstanceJob extends GenericJob<Instance> {
                 portUpdateHandler = portUpdateBuilder.buildPortUpdateHandler();
             }
 
+            int minSinks;
+            if (portRequired.isMandatory()) {
+                minSinks = 1;
+            } else {
+                minSinks = OutPort.NO_SINKS;
+            }
+
             builder.addOutport(portRequired.name(), portUpdateHandler,
-                PortProperties.INFINITE_CARDINALITY);
+                PortProperties.INFINITE_CARDINALITY, minSinks);
         }
 
         //build a lifecycle store from the application component
@@ -173,17 +194,30 @@ public class CreateInstanceJob extends GenericJob<Instance> {
         }
         for (PortRequired portRequired : instance.getApplicationComponent().getRequiredPorts()) {
             deploymentContext.setProperty(portRequired.name(), new PortReference(ComponentId
-                .fromString(portRequired.getAttachedCommunication().getProvidedPort()
-                    .getApplicationComponent().getUuid()),
-                portRequired.getAttachedCommunication().getProvidedPort().name(),
+                .fromString(portRequired.communication().getProvidedPort().getApplicationComponent()
+                    .getUuid()), portRequired.communication().getProvidedPort().name(),
                 PortProperties.PortLinkage.ALL), OutPort.class);
         }
 
         return deploymentContext;
     }
 
-    @Override public boolean canStart() {
-        return RemoteState.OK.equals(instance.getVirtualMachine().getRemoteState());
+    @Override public boolean canStart() throws JobException {
+        try {
+            return JPA.withTransaction(() -> {
+                Instance instance = getT();
+
+                if (RemoteState.ERROR.equals(instance.getVirtualMachine().getRemoteState())) {
+                    throw new JobException(String
+                        .format("Job %s can never start as virtual machine %s is in error state.",
+                            this, instance.getVirtualMachine()));
+                }
+
+                return RemoteState.OK.equals(getT().getVirtualMachine().getRemoteState());
+            });
+        } catch (Throwable throwable) {
+            throw new JobException(throwable);
+        }
     }
 
     private static class LifecycleComponentToLifecycleStoreConverter
@@ -240,6 +274,18 @@ public class CreateInstanceJob extends GenericJob<Instance> {
                 final LifecycleHandler lifecycleHandler =
                     bashBasedHandlerBuilder.build(entry.getKey());
                 lifecycleStoreBuilder.setHandler(lifecycleHandler, entry.getKey());
+            }
+
+            if (lc.getStartDetection() != null) {
+                final BashBasedHandlerBuilder startHandlerBuilder =
+                    new BashBasedHandlerBuilder();
+                startHandlerBuilder.addCommand(lc.getStartDetection());
+                startHandlerBuilder.setOperatingSystem(os);
+                lifecycleStoreBuilder
+                    .setStartDetector(startHandlerBuilder.buildStartDetector());
+            } else {
+                lifecycleStoreBuilder.setStartDetector(
+                    DefaultDetectorFactories.START_DETECTOR_FACTORY.getDefault());
             }
 
             return lifecycleStoreBuilder.build();

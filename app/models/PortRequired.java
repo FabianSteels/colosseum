@@ -20,6 +20,7 @@ package models;
 
 import javax.annotation.Nullable;
 import javax.persistence.Entity;
+import javax.persistence.Lob;
 import javax.persistence.OneToOne;
 import java.util.Optional;
 
@@ -29,7 +30,8 @@ import java.util.Optional;
 @Entity public class PortRequired extends Port {
 
     @OneToOne(mappedBy = "requiredPort") Communication requiredCommunication;
-    @Nullable String updateAction;
+    @Nullable @Lob String updateAction;
+    @Nullable Boolean isMandatory;
 
     /**
      * Default constructor for hibernate.
@@ -38,16 +40,23 @@ import java.util.Optional;
     }
 
     public PortRequired(String name, ApplicationComponent applicationComponent,
-        @Nullable String updateAction) {
+        @Nullable String updateAction, @Nullable Boolean isMandatory) {
         super(name, applicationComponent);
         this.updateAction = updateAction;
     }
 
-    @Override public Communication getAttachedCommunication() {
+    public Communication communication() {
         return requiredCommunication;
     }
 
     public Optional<String> updateAction() {
         return Optional.ofNullable(updateAction);
+    }
+
+    public boolean isMandatory() {
+        if (isMandatory == null) {
+            return false;
+        }
+        return isMandatory;
     }
 }

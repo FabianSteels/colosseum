@@ -25,8 +25,8 @@ import com.google.common.base.Optional;
 import de.uniulm.omi.cloudiator.sword.api.extensions.KeyPairService;
 import de.uniulm.omi.cloudiator.sword.api.extensions.PublicIpService;
 import de.uniulm.omi.cloudiator.sword.api.remote.RemoteConnection;
+import de.uniulm.omi.cloudiator.sword.api.remote.RemoteException;
 import models.CloudCredential;
-import models.Tenant;
 import models.VirtualMachine;
 
 import static com.google.common.base.Preconditions.checkArgument;
@@ -38,18 +38,13 @@ import static com.google.common.base.Preconditions.checkNotNull;
 public class BaseColosseumComputeService implements ColosseumComputeService {
 
     private final ComputeServiceRegistry computeServices;
-    private final RemoteConnectionStrategy.RemoteConnectionStrategyFactory
-        remoteConnectionStrategyFactory;
 
 
-    public BaseColosseumComputeService(ComputeServiceRegistry computeServices,
-        RemoteConnectionStrategy.RemoteConnectionStrategyFactory remoteConnectionStrategyFactory) {
+    public BaseColosseumComputeService(ComputeServiceRegistry computeServices) {
 
         checkNotNull(computeServices);
-        checkNotNull(remoteConnectionStrategyFactory);
 
         this.computeServices = computeServices;
-        this.remoteConnectionStrategyFactory = remoteConnectionStrategyFactory;
     }
 
     @Override public VirtualMachineInLocation createVirtualMachine(
@@ -63,22 +58,6 @@ public class BaseColosseumComputeService implements ColosseumComputeService {
         checkArgument(virtualMachine.cloudProviderId().isPresent());
         this.computeServices.getComputeService(virtualMachine.owner().get().getUuid())
             .deleteVirtualMachine(virtualMachine.cloudProviderId().get());
-    }
-
-    @Override
-    public RemoteConnection remoteConnection(Tenant tenant, VirtualMachine virtualMachine) {
-        checkNotNull(tenant);
-        checkNotNull(virtualMachine);
-
-        RemoteConnectionStrategy remoteConnectionStrategy =
-            remoteConnectionStrategyFactory.create(tenant);
-
-        if (!remoteConnectionStrategy.isApplicable(virtualMachine)) {
-            throw new IllegalArgumentException(String
-                .format("Selected connection %s strategy does not support the virtual machine %s",
-                    remoteConnectionStrategy, virtualMachine));
-        }
-        return remoteConnectionStrategy.apply(virtualMachine);
     }
 
     @Override public Optional<KeyPairService> getKeyPairService(CloudCredential cloudCredential) {

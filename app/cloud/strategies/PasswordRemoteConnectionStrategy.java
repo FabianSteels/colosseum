@@ -25,11 +25,9 @@ import de.uniulm.omi.cloudiator.sword.api.domain.OSFamily;
 import de.uniulm.omi.cloudiator.sword.api.remote.RemoteConnection;
 import de.uniulm.omi.cloudiator.sword.api.remote.RemoteException;
 import de.uniulm.omi.cloudiator.sword.core.domain.LoginCredentialBuilder;
-import models.Tenant;
 import models.VirtualMachine;
 
-import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.base.Preconditions.*;
 
 /**
  * Created by daniel on 01.09.15.
@@ -42,27 +40,29 @@ public class PasswordRemoteConnectionStrategy implements RemoteConnectionStrateg
         this.connectionService = connectionService;
     }
 
-    @Override public boolean isApplicable(VirtualMachine virtualMachine) {
-        return virtualMachine.loginName().isPresent() && virtualMachine.loginPassword().isPresent();
-    }
+    @Override public RemoteConnection connect(VirtualMachine virtualMachine)
+        throws RemoteException {
 
-    @Override public RemoteConnection apply(VirtualMachine virtualMachine) {
+        checkState(virtualMachine.owner().isPresent(),
+            "Owner of virtual machine should be set before calling connect.");
 
-        checkArgument(virtualMachine.publicIpAddress().isPresent());
-        checkArgument(virtualMachine.loginName().isPresent());
-        checkArgument(virtualMachine.loginPassword().isPresent());
+        checkArgument(virtualMachine.publicIpAddress().isPresent(),
+            "Virtual machine must have a public ip address.");
+
+        if (!virtualMachine.loginPassword().isPresent()) {
+            throw new RemoteException(String
+                .format("Virtual machine %s does not provide a login password", virtualMachine));
+        }
+
         int remotePort = virtualMachine.remotePortOrDefault();
         OSFamily osFamily = virtualMachine.operatingSystemVendorTypeOrDefault().osFamily();
 
-        try {
-            return connectionService.getRemoteConnection(
-                HostAndPort.fromParts(virtualMachine.publicIpAddress().get().getIp(), remotePort),
-                osFamily,
-                LoginCredentialBuilder.newBuilder().password(virtualMachine.loginPassword().get())
-                    .username(virtualMachine.loginName().get()).build());
-        } catch (RemoteException e) {
-            throw new RemoteRuntimeException(e);
-        }
+        return connectionService.getRemoteConnection(
+            HostAndPort.fromParts(virtualMachine.publicIpAddress().get().getIp(), remotePort),
+            osFamily,
+            LoginCredentialBuilder.newBuilder().password(virtualMachine.loginPassword().get())
+                .username(virtualMachine.loginName().get()).build());
+
     }
 
     @Override public int getPriority() {
@@ -82,7 +82,7 @@ public class PasswordRemoteConnectionStrategy implements RemoteConnectionStrateg
             this.connectionService = connectionService;
         }
 
-        @Override public RemoteConnectionStrategy create(Tenant ignored) {
+        @Override public RemoteConnectionStrategy create() {
             return new PasswordRemoteConnectionStrategy(connectionService);
         }
     }

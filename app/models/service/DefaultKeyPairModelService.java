@@ -19,11 +19,9 @@
 package models.service;
 
 import com.google.inject.Inject;
-import models.Cloud;
 import models.KeyPair;
-import models.Tenant;
+import models.VirtualMachine;
 
-import javax.annotation.Nullable;
 import java.util.Optional;
 
 import static com.google.common.base.Preconditions.checkNotNull;
@@ -38,13 +36,19 @@ public class DefaultKeyPairModelService extends BaseModelService<KeyPair>
         super(modelRepository);
     }
 
-    @Nullable @Override public Optional<KeyPair> getKeyPair(Cloud cloud, Tenant tenant) {
-
-        checkNotNull(cloud);
-        checkNotNull(tenant);
+    @Override public Optional<KeyPair> getKeyPair(VirtualMachine virtualMachine) {
+        checkNotNull(virtualMachine);
 
         for (KeyPair keyPair : getAll()) {
-            if (keyPair.getCloud().equals(cloud) && keyPair.getTenant().equals(tenant)) {
+            // it is a keypair per virtual machine
+            if (keyPair.virtualMachine().isPresent() && keyPair.virtualMachine().get()
+                .equals(virtualMachine)) {
+                return Optional.of(keyPair);
+            }
+            // it is a keypair per cloud credential
+            if (!keyPair.virtualMachine().isPresent() && virtualMachine.owner().isPresent()
+                && keyPair.owner().isPresent() && virtualMachine.owner().get()
+                .equals(keyPair.owner().get())) {
                 return Optional.of(keyPair);
             }
         }

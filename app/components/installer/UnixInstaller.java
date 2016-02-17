@@ -24,25 +24,28 @@ import models.Tenant;
 import models.VirtualMachine;
 import play.Logger;
 import play.Play;
+import util.logging.Loggers;
 
 
 /**
- * Created by Daniel Seybold on 19.05.2015.
+ * todo clean up class, do better logging
  */
 public class UnixInstaller extends AbstractInstaller {
 
+    private static final Logger.ALogger LOGGER = Loggers.of(Loggers.INSTALLATION);
     protected final String homeDir;
     private static final String JAVA_ARCHIVE = "jre8.tar.gz";
     private static final String JAVA_DOWNLOAD =
         Play.application().configuration().getString("colosseum.installer.linux.java.download");
-    private static final String DOCKER_DOWNLOAD = Play.application().configuration()
-        .getString("colosseum.installer.linux.lance.docker.download");
-    private static final String DOCKER_INSTALL = "docker_install.sh";
+    private static final String DOCKER_RETRY_DOWNLOAD = Play.application().configuration()
+            .getString("colosseum.installer.linux.lance.docker_retry.download");
+    private static final String DOCKER_RETRY_INSTALL = "docker_retry.sh";
+    private final Tenant tenant;
 
     public UnixInstaller(RemoteConnection remoteConnection, VirtualMachine virtualMachine,
         Tenant tenant) {
-        super(remoteConnection, virtualMachine, tenant);
-
+        super(remoteConnection, virtualMachine);
+        this.tenant = tenant;
         this.homeDir = "/home/" + virtualMachine.loginName().get();
     }
 
@@ -56,7 +59,7 @@ public class UnixInstaller extends AbstractInstaller {
             .add("wget " + UnixInstaller.LANCE_DOWNLOAD + "  -O " + UnixInstaller.LANCE_JAR);
         //docker
         this.sourcesList
-            .add("wget " + UnixInstaller.DOCKER_DOWNLOAD + "  -O " + UnixInstaller.DOCKER_INSTALL);
+            .add("wget " + UnixInstaller.DOCKER_RETRY_DOWNLOAD + "  -O " + UnixInstaller.DOCKER_RETRY_INSTALL);
         //kairosDB
         this.sourcesList.
             add("wget " + UnixInstaller.KAIROSDB_DOWNLOAD + "  -O "
@@ -71,7 +74,7 @@ public class UnixInstaller extends AbstractInstaller {
 
     @Override public void installJava() throws RemoteException {
 
-        Logger.debug("Starting Java installation...");
+        LOGGER.debug(String.format("Starting Java installation on vm %s", virtualMachine));
         //create directory
         this.remoteConnection.executeCommand("mkdir " + UnixInstaller.JAVA_DIR);
         //extract java
@@ -82,27 +85,26 @@ public class UnixInstaller extends AbstractInstaller {
         this.remoteConnection.executeCommand(
             "sudo ln -s " + this.homeDir + "/" + UnixInstaller.JAVA_DIR
                 + "/bin/java /usr/bin/java");
-        Logger.debug("Java was successfully installed!");
+        LOGGER.debug(String.format("Java was successfully installed on vm %s", virtualMachine));
     }
 
     @Override public void installVisor() throws RemoteException {
 
-        Logger.debug("setting up Visor...");
-
+        LOGGER.debug(String.format("Setting up Visor on vm %s", virtualMachine));
         //create properties file
         this.remoteConnection.writeFile(this.homeDir + "/" + UnixInstaller.VISOR_PROPERTIES,
             this.buildDefaultVisorConfig(), false);
 
         //start visor
         this.remoteConnection.executeCommand(
-            "nohup bash -c 'java -jar " + UnixInstaller.VISOR_JAR + " -conf "
+            "sudo nohup bash -c 'java -jar " + UnixInstaller.VISOR_JAR + " -conf "
                 + UnixInstaller.VISOR_PROPERTIES + " &> /dev/null &'");
-        Logger.debug("Visor started successfully!");
+        LOGGER.debug(String.format("Visor started successfully on vm %s", virtualMachine));
     }
 
     @Override public void installKairosDb() throws RemoteException {
 
-        Logger.debug("Installing and starting KairosDB...");
+        LOGGER.debug(String.format("Installing and starting KairosDB on vm %s", virtualMachine));
         this.remoteConnection.executeCommand("mkdir " + UnixInstaller.KAIRROSDB_DIR);
 
         this.remoteConnection.executeCommand(
@@ -111,21 +113,22 @@ public class UnixInstaller extends AbstractInstaller {
 
         this.remoteConnection.executeCommand(
             " sudo nohup " + UnixInstaller.KAIRROSDB_DIR + "/bin/kairosdb.sh start");
-        Logger.debug("KairosDB started successfully!");
+        LOGGER.debug(String.format("KairosDB started successfully on vm %s", virtualMachine));
     }
 
     @Override public void installLance() throws RemoteException {
 
-        //install Lance
-        Logger.debug("Installing and starting Lance: Docker...");
+        LOGGER
+            .debug(String.format("Installing and starting Lance: Docker on vm %s", virtualMachine));
 
-        //install docker
-        Logger.debug("Installing and starting Docker...");
-        this.remoteConnection.executeCommand("sudo chmod +x " + UnixInstaller.DOCKER_INSTALL);
+        this.remoteConnection.executeCommand("sudo chmod +x " + UnixInstaller.DOCKER_RETRY_INSTALL);
+        // Install docker via the retry script:
         this.remoteConnection.executeCommand(
-            "sudo nohup ./" + UnixInstaller.DOCKER_INSTALL + " > docker_install.out 2>&1");
+                "sudo nohup ./" + UnixInstaller.DOCKER_RETRY_INSTALL + " > docker_retry_install.out 2>&1");
         this.remoteConnection
             .executeCommand("sudo nohup bash -c 'service docker restart' > docker_start.out 2>&1 ");
+
+        LOGGER.debug(String.format("Installing and starting Lance on vm %s", virtualMachine));
 
         //start Lance
         this.remoteConnection.executeCommand("nohup bash -c 'java " +
@@ -138,12 +141,14 @@ public class UnixInstaller extends AbstractInstaller {
             " -jar " + UnixInstaller.LANCE_JAR +
             " > lance.out 2>&1 &' > lance.out 2>&1");
 
-        Logger.debug("Lance installed and started successfully!");
+        LOGGER.debug(
+            String.format("Lance installed and started successfully on vm %s", virtualMachine));
     }
 
     @Override public void installAll() throws RemoteException {
 
-        Logger.debug("Starting installation of all tools on UNIX...");
+        LOGGER.debug(
+            String.format("Starting installation of all tools on UNIX on vm %s", virtualMachine));
 
         this.initSources();
         this.downloadSources();

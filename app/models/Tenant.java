@@ -18,9 +18,11 @@
 
 package models;
 
+import com.google.common.collect.ImmutableList;
 import models.generic.Model;
 
 import javax.persistence.*;
+import java.util.Collections;
 import java.util.List;
 
 import static com.google.common.base.Preconditions.checkArgument;
@@ -36,8 +38,6 @@ import static com.google.common.base.Preconditions.checkNotNull;
 
     @OneToMany(mappedBy = "tenant", cascade = CascadeType.REMOVE) private List<CloudCredential>
         cloudCredentials;
-
-    @OneToMany(mappedBy = "tenant", cascade = CascadeType.REMOVE) private List<KeyPair> keyPairs;
 
     /**
      * Empty constructor for hibernate.
@@ -57,7 +57,10 @@ import static com.google.common.base.Preconditions.checkNotNull;
     }
 
     public List<CloudCredential> getCloudCredentials() {
-        return cloudCredentials;
+        if (cloudCredentials == null) {
+            cloudCredentials = Collections.emptyList();
+        }
+        return ImmutableList.copyOf(cloudCredentials);
     }
 
     public void setFrontendUsers(List<FrontendUser> frontendUsers) {
@@ -74,13 +77,5 @@ import static com.google.common.base.Preconditions.checkNotNull;
 
     public void setCloudCredentials(List<CloudCredential> cloudCredentials) {
         this.cloudCredentials = cloudCredentials;
-    }
-
-    public List<KeyPair> getKeyPairs() {
-        return keyPairs;
-    }
-
-    public void setKeyPairs(List<KeyPair> keyPairs) {
-        this.keyPairs = keyPairs;
     }
 }

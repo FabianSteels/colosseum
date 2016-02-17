@@ -18,37 +18,41 @@
 
 package components.job;
 
-import com.google.inject.Inject;
-import com.google.inject.name.Named;
-import components.execution.Loop;
-import components.execution.SimpleBlockingQueue;
 import play.Logger;
-import play.db.jpa.Transactional;
-
+import util.logging.Loggers;
 
 /**
- * Created by daniel on 12.05.15.
+ * Created by daniel on 26.11.15.
  */
+class JobWorker implements Runnable {
 
-public class JobWorker implements Runnable {
+    private final static Logger.ALogger LOGGER = Loggers.of(Loggers.CLOUD_JOB);
 
-    private final SimpleBlockingQueue<Job> jobQueue;
+    private final Job job;
 
-    @Inject public JobWorker(@Named("jobQueue") SimpleBlockingQueue<Job> jobQueue) {
-        this.jobQueue = jobQueue;
+    public JobWorker(Job job) {
+        this.job = job;
     }
 
-    @Loop @Transactional @Override public void run() {
+    @Override public void run() {
+
+        LOGGER.info(String.format("Starting execution of job %s", job));
         try {
-            Job job = jobQueue.take();
-            Logger.info("Starting execution of job" + job);
             job.execute();
-            Logger.info("Finished execution of job" + job);
-        } catch (InterruptedException e) {
-            Logger.error("Job Execution got interrupted", e);
-            Thread.currentThread().interrupt();
+            job.onSuccess();
+            LOGGER.info(String.format("Execution of job %s successfully finished", job));
         } catch (Exception e) {
-            Logger.error("Job Execution got error", e);
+            LOGGER
+                .error(String.format("Error during execution of %s, calling onError handler", job),
+                    e);
+            try {
+                job.onError();
+            } catch (JobException ignored) {
+                LOGGER.error("Error in onError handler. Ignoring", ignored);
+            }
         }
+
+
+
     }
 }

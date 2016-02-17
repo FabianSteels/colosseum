@@ -19,29 +19,34 @@
 package components.job;
 
 import cloud.colosseum.ColosseumComputeService;
+import com.google.common.base.MoreObjects;
 import models.Tenant;
-import models.generic.Model;
+import models.generic.RemoteResource;
+import models.generic.RemoteState;
 import models.service.ModelService;
+import models.service.RemoteModelService;
+import play.db.jpa.JPA;
 
 /**
  * Created by daniel on 08.05.15.
  */
-public abstract class GenericJob<T extends Model> implements Job {
+public abstract class AbstractRemoteResourceJob<T extends RemoteResource> implements Job {
 
     private final String resourceUuid;
+    private final String tenantUuid;
     private final ModelService<T> modelService;
     private final ColosseumComputeService colosseumComputeService;
     private JobState jobState;
-    private final Tenant tenant;
     private final ModelService<Tenant> tenantModelService;
 
-    public GenericJob(T t, ModelService<T> modelService, ModelService<Tenant> tenantModelService,
-        ColosseumComputeService colosseumComputeService, Tenant tenant) {
+    public AbstractRemoteResourceJob(T t, RemoteModelService<T> modelService,
+        ModelService<Tenant> tenantModelService, ColosseumComputeService colosseumComputeService,
+        Tenant tenant) {
         this.colosseumComputeService = colosseumComputeService;
         this.resourceUuid = t.getUuid();
         this.modelService = modelService;
         this.tenantModelService = tenantModelService;
-        this.tenant = tenant;
+        this.tenantUuid = tenant.getUuid();
     }
 
     @Override public final String getResourceUuid() {
@@ -61,11 +66,15 @@ public abstract class GenericJob<T extends Model> implements Job {
     }
 
     @Override public final void execute() throws JobException {
-        T t = null;
-        /**
+        init();
+        this.doWork(modelService, colosseumComputeService);
+    }
 
+    protected final T getT() {
+        /**
          * todo: find a better way for waiting for the database
          */
+        T t = null;
         while (t == null) {
             try {
                 Thread.sleep(2000);
@@ -74,10 +83,42 @@ public abstract class GenericJob<T extends Model> implements Job {
             }
             t = this.modelService.getByUuid(resourceUuid);
         }
-        this.doWork(t, modelService, colosseumComputeService,
-            tenantModelService.getById(tenant.getId()));
+        return t;
     }
 
-    protected abstract void doWork(T t, ModelService<T> modelService,
-        ColosseumComputeService computeService, Tenant tenant) throws JobException;
+    protected final Tenant getTenant() {
+        return this.tenantModelService.getByUuid(tenantUuid);
+    }
+
+    public void init() {
+        JPA.withTransaction(() -> {
+            T t = getT();
+            t.setRemoteState(RemoteState.INPROGRESS);
+            modelService.save(t);
+        });
+    }
+
+    protected abstract void doWork(ModelService<T> modelService,
+        ColosseumComputeService computeService) throws JobException;
+
+    @Override public void onSuccess() throws JobException {
+        JPA.withTransaction(() -> {
+            T t = getT();
+            t.setRemoteState(RemoteState.OK);
+            modelService.save(t);
+        });
+    }
+
+    @Override public void onError() throws JobException {
+        JPA.withTransaction(() -> {
+            T t = getT();
+            t.setRemoteState(RemoteState.ERROR);
+            modelService.save(t);
+        });
+    }
+
+    @Override public String toString() {
+        return MoreObjects.toStringHelper(this).add("resource", resourceUuid)
+            .add("tenant", tenantUuid).toString();
+    }
 }

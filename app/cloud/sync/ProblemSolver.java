@@ -22,19 +22,18 @@ import com.google.inject.Inject;
 import com.google.inject.name.Named;
 import components.execution.Loop;
 import components.execution.SimpleBlockingQueue;
-import components.execution.Stable;
 import play.Logger;
 import play.db.jpa.Transactional;
-import util.Loggers;
+import util.logging.Loggers;
 
 /**
  * Created by daniel on 05.05.15.
  */
-@Stable public class ProblemSolver implements Runnable {
+public class ProblemSolver implements Runnable {
 
     private final SolutionDatabase solutionDatabase;
     private final SimpleBlockingQueue<Problem> problemQueue;
-    private final Logger.ALogger LOGGER = Loggers.of(Loggers.CLOUD_SYNC);
+    private static final Logger.ALogger LOGGER = Loggers.of(Loggers.CLOUD_SYNC);
 
     @Inject public ProblemSolver(SolutionDatabase solutionDatabase,
         @Named(value = "problemQueue") SimpleBlockingQueue<Problem> problemQueue) {
@@ -64,6 +63,10 @@ import util.Loggers;
                 throw new IllegalStateException(e);
             } catch (SolutionException e) {
                 LOGGER.warn("Could not solve problem " + problemToSolve, e);
+            } catch (Exception e) {
+                LOGGER.error(String
+                        .format("Unexpected exception during solving of problem %s", problemToSolve),
+                    e);
             }
         }
     }

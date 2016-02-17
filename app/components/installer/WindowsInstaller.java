@@ -24,13 +24,16 @@ import models.Tenant;
 import models.VirtualMachine;
 import play.Logger;
 import play.Play;
+import util.logging.Loggers;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
 /**
- * Created by Daniel Seybold on 20.05.2015.
+ * todo clean up class, do better logging
  */
 public class WindowsInstaller extends AbstractInstaller {
+
+    private static final Logger.ALogger LOGGER = Loggers.of(Loggers.INSTALLATION);
     private final String homeDir;
     private static final String JAVA_EXE = "jre8.exe";
     private static final String SEVEN_ZIP_ARCHIVE = "7za920.zip";
@@ -45,18 +48,21 @@ public class WindowsInstaller extends AbstractInstaller {
         Play.application().configuration().getString("colosseum.installer.windows.7zip.download");
     private final String user;
     private final String password;
+    private final Tenant tenant;
 
 
 
     public WindowsInstaller(RemoteConnection remoteConnection, VirtualMachine virtualMachine,
         Tenant tenant) {
-        super(remoteConnection, virtualMachine, tenant);
+        super(remoteConnection, virtualMachine);
 
         this.user = virtualMachine.loginName().get();
-        checkArgument(virtualMachine.loginPassword().isPresent(), "Expected login password for WindowsInstaller");
+        checkArgument(virtualMachine.loginPassword().isPresent(),
+            "Expected login password for WindowsInstaller");
         this.password = virtualMachine.loginPassword().get();
 
         this.homeDir = "C:\\Users\\" + this.user;
+        this.tenant = tenant;
 
     }
 
@@ -88,7 +94,7 @@ public class WindowsInstaller extends AbstractInstaller {
 
     @Override public void installJava() throws RemoteException {
 
-        Logger.debug("Installing Java...");
+        LOGGER.debug("Installing Java...");
         this.remoteConnection.executeCommand(
             "powershell -command " + this.homeDir + "\\jre8.exe /s INSTALLDIR=" + this.homeDir
                 + "\\" + WindowsInstaller.JAVA_DIR);
@@ -99,23 +105,23 @@ public class WindowsInstaller extends AbstractInstaller {
         remoteConnection.executeCommand(
             "SETX JAVA_HOME " + this.homeDir + "\\" + WindowsInstaller.JAVA_DIR + " /m");
 
-        Logger.debug("Java successfully installed!");
+        LOGGER.debug("Java successfully installed!");
 
 
     }
 
     private void install7Zip() throws RemoteException {
-        Logger.debug("Unzipping 7zip...");
+        LOGGER.debug("Unzipping 7zip...");
         this.remoteConnection.executeCommand(
             "powershell -command & { Add-Type -A 'System.IO.Compression.FileSystem'; [IO.Compression.ZipFile]::ExtractToDirectory('"
                 + this.homeDir + "\\" + WindowsInstaller.SEVEN_ZIP_ARCHIVE + "', '" + this.homeDir
                 + "\\" + WindowsInstaller.SEVEN_ZIP_DIR + "'); }");
-        Logger.debug("7zip successfully unzipped!");
+        LOGGER.debug("7zip successfully unzipped!");
     }
 
     @Override public void installVisor() throws RemoteException {
 
-        Logger.debug("Setting up and starting Visor");
+        LOGGER.debug("Setting up and starting Visor");
 
         //create properties file
         this.remoteConnection.writeFile(this.homeDir + "\\" + WindowsInstaller.VISOR_PROPERTIES,
@@ -133,32 +139,35 @@ public class WindowsInstaller extends AbstractInstaller {
 
         //set firewall rules
         this.remoteConnection.executeCommand(
-            "powershell -command netsh advfirewall firewall add rule name = 'Visor Rest Port' dir = in action = allow protocol=TCP localport=" + Play.application().configuration().getString("colosseum.installer.abstract.visor.config.restPort"));
+            "powershell -command netsh advfirewall firewall add rule name = 'Visor Rest Port' dir = in action = allow protocol=TCP localport="
+                + Play.application().configuration()
+                .getString("colosseum.installer.abstract.visor.config.restPort"));
         this.remoteConnection.executeCommand(
-            "powershell -command netsh advfirewall firewall add rule name = 'Visor Telnet Port' dir = in action = allow protocol=TCP localport=" + Play.application().configuration().getString("colosseum.installer.abstract.visor.config.telnetPort"));
+            "powershell -command netsh advfirewall firewall add rule name = 'Visor Telnet Port' dir = in action = allow protocol=TCP localport="
+                + Play.application().configuration()
+                .getString("colosseum.installer.abstract.visor.config.telnetPort"));
 
 
         //create schtaks
-        this.remoteConnection.executeCommand(
-            "schtasks.exe " +
-                    "/create " +
-                    "/st 00:00  " +
-                    "/sc ONCE " +
-                    "/ru " + this.user +" " +
-                    "/rp " + this.password + " " +
-                    "/tn " + visorJobId +
-                    " /tr \"" + this.homeDir + "\\" + WindowsInstaller.VISOR_BAT + "\"");
+        this.remoteConnection.executeCommand("schtasks.exe " +
+            "/create " +
+            "/st 00:00  " +
+            "/sc ONCE " +
+            "/ru " + this.user + " " +
+            "/rp " + this.password + " " +
+            "/tn " + visorJobId +
+            " /tr \"" + this.homeDir + "\\" + WindowsInstaller.VISOR_BAT + "\"");
         this.waitForSchtaskCreation();
         //run schtask
         this.remoteConnection.executeCommand("schtasks.exe /run /tn " + visorJobId);
 
-        Logger.debug("Visor started successfully!");
+        LOGGER.debug("Visor started successfully!");
 
     }
 
     @Override public void installKairosDb() throws RemoteException {
 
-        Logger.debug("Extract, setup and start KairosDB...");
+        LOGGER.debug("Extract, setup and start KairosDB...");
         //extract kairosdb
         this.remoteConnection.executeCommand(
             "powershell -command " + this.homeDir + "\\" + WindowsInstaller.SEVEN_ZIP_DIR + "\\"
@@ -172,7 +181,9 @@ public class WindowsInstaller extends AbstractInstaller {
 
         //set firewall rule
         this.remoteConnection.executeCommand(
-            "powershell -command netsh advfirewall firewall add rule name = 'Kairos Port' dir = in action = allow protocol=TCP localport=" + Play.application().configuration().getString("colosseum.installer.abstract.visor.config.kairosPort"));
+            "powershell -command netsh advfirewall firewall add rule name = 'Kairos Port' dir = in action = allow protocol=TCP localport="
+                + Play.application().configuration()
+                .getString("colosseum.installer.abstract.visor.config.kairosPort"));
 
         //create a .bat file to start kairosDB, because it is not possible to pass schtasks paramters using overthere
         String startCommand =
@@ -182,29 +193,32 @@ public class WindowsInstaller extends AbstractInstaller {
 
         //start kairosdb in backround
         String kairosJobId = "kairosDB";
-        this.remoteConnection.executeCommand(
-            "schtasks.exe /create " +
-                    "/st 00:00  " +
-                    "/sc ONCE " +
-                    "/ru " + this.user +" " +
-                    "/rp " + this.password + " " +
-                    "/tn " + kairosJobId + " " +
-                    "/tr \"" + this.homeDir + "\\" + WindowsInstaller.KAIROSDB_BAT + "\"");
+        this.remoteConnection.executeCommand("schtasks.exe /create " +
+            "/st 00:00  " +
+            "/sc ONCE " +
+            "/ru " + this.user + " " +
+            "/rp " + this.password + " " +
+            "/tn " + kairosJobId + " " +
+            "/tr \"" + this.homeDir + "\\" + WindowsInstaller.KAIROSDB_BAT + "\"");
         this.waitForSchtaskCreation();
         this.remoteConnection.executeCommand("schtasks.exe /run /tn " + kairosJobId);
-        Logger.debug("KairosDB successfully started!");
+        LOGGER.debug("KairosDB successfully started!");
 
 
     }
 
     @Override public void installLance() throws RemoteException {
-        Logger.error("Setting up Lance...");
+        LOGGER.error("Setting up Lance...");
 
-        Logger.error("Opening Firewall ports for Lance...");
+        LOGGER.error("Opening Firewall ports for Lance...");
         this.remoteConnection.executeCommand(
-            "powershell -command netsh advfirewall firewall add rule name = 'Lance RMI' dir = in action = allow protocol=TCP localport=" + Play.application().configuration().getString("colosseum.installer.abstract.lance.rmiPort"));
+            "powershell -command netsh advfirewall firewall add rule name = 'Lance RMI' dir = in action = allow protocol=TCP localport="
+                + Play.application().configuration()
+                .getString("colosseum.installer.abstract.lance.rmiPort"));
         this.remoteConnection.executeCommand(
-            "powershell -command netsh advfirewall firewall add rule name = 'Lance Server' dir = in action = allow protocol=TCP localport=" + Play.application().configuration().getString("colosseum.installer.abstract.lance.serverPort"));
+            "powershell -command netsh advfirewall firewall add rule name = 'Lance Server' dir = in action = allow protocol=TCP localport="
+                + Play.application().configuration()
+                .getString("colosseum.installer.abstract.lance.serverPort"));
 
         //create a .bat file to start Lance, because it is not possible to pass schtasks paramters using overthere
         String startCommand = " java " +
@@ -220,24 +234,23 @@ public class WindowsInstaller extends AbstractInstaller {
 
         //start lance in backround
         String lanceJobId = "lance";
-        this.remoteConnection.executeCommand(
-            "schtasks.exe " +
-                    "/create " +
-                    "/st 00:00  " +
-                    "/sc ONCE " +
-                    "/ru " + this.user +" " +
-                    "/rp " + this.password + " " +
-                    "/tn " + lanceJobId + " " +
-                    "/tr \"" + this.homeDir + "\\" + WindowsInstaller.LANCE_BAT + "\"");
+        this.remoteConnection.executeCommand("schtasks.exe " +
+            "/create " +
+            "/st 00:00  " +
+            "/sc ONCE " +
+            "/ru " + this.user + " " +
+            "/rp " + this.password + " " +
+            "/tn " + lanceJobId + " " +
+            "/tr \"" + this.homeDir + "\\" + WindowsInstaller.LANCE_BAT + "\"");
         this.waitForSchtaskCreation();
         this.remoteConnection.executeCommand("schtasks.exe /run /tn " + lanceJobId);
-        Logger.debug("Lance successfully started!");
+        LOGGER.debug("Lance successfully started!");
 
     }
 
     @Override public void installAll() throws RemoteException {
 
-        Logger.debug("Starting installation of all tools on WINDOWS...");
+        LOGGER.debug("Starting installation of all tools on WINDOWS...");
 
         this.initSources();
         this.downloadSources();
@@ -257,8 +270,7 @@ public class WindowsInstaller extends AbstractInstaller {
         try {
             Thread.sleep(5000);
         } catch (InterruptedException e) {
-            Logger.error("Error while waiting for schtask to be created!", e);
-            e.printStackTrace();
+            LOGGER.error("Error while waiting for schtask to be created!", e);
         }
     }
 }

@@ -23,28 +23,39 @@ import com.google.inject.Inject;
 import models.Tenant;
 import models.VirtualMachine;
 import models.service.ModelService;
+import models.service.RemoteModelService;
+import play.db.jpa.JPA;
 
 /**
  * Created by daniel on 14.10.15.
  */
-public class DeleteVirtualMachineJob extends GenericJob<VirtualMachine> {
+public class DeleteVirtualMachineJob extends AbstractRemoteResourceJob<VirtualMachine> {
 
     @Inject public DeleteVirtualMachineJob(VirtualMachine virtualMachine,
-        ModelService<VirtualMachine> modelService, ModelService<Tenant> tenantModelService,
+        RemoteModelService<VirtualMachine> modelService, ModelService<Tenant> tenantModelService,
         ColosseumComputeService colosseumComputeService, Tenant tenant) {
         super(virtualMachine, modelService, tenantModelService, colosseumComputeService, tenant);
     }
 
-    @Override
-    protected void doWork(VirtualMachine virtualMachine, ModelService<VirtualMachine> modelService,
-        ColosseumComputeService computeService, Tenant tenant) throws JobException {
+    @Override protected void doWork(ModelService<VirtualMachine> modelService,
+        ColosseumComputeService computeService) throws JobException {
 
-        computeService.deleteVirtualMachine(virtualMachine);
-        modelService.delete(virtualMachine);
-
+        JPA.withTransaction(() -> {
+            VirtualMachine virtualMachine = getT();
+            computeService.deleteVirtualMachine(virtualMachine);
+            modelService.delete(virtualMachine);
+        });
     }
 
     @Override public boolean canStart() {
         return true;
+    }
+
+    @Override public void onSuccess() throws JobException {
+        // do nothing
+    }
+
+    @Override public void onError() throws JobException {
+        // do nothing
     }
 }
