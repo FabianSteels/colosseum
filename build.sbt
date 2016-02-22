@@ -3,7 +3,7 @@ import de.johoop.jacoco4sbt.JacocoPlugin.jacoco
 
 lazy val root = (project in file(".")).enablePlugins(PlayJava)
 
-name := "colosseum"
+name := "paasage-frontend"
 
 //disable scala version suffix
 crossPaths := false
