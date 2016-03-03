@@ -58,9 +58,10 @@ libraryDependencies ++= Seq(
   "commons-lang" % "commons-lang" % "2.6",
   "com.rabbitmq" % "amqp-client" %  "3.4.4",
   "org.codehaus.jackson" % "jackson-mapper-asl" % "1.9.13",
-  "org.zeromq" % "jzmq" % "3.1.0"
+  "org.zeromq" % "jeromq" % "0.3.5"
 )
 
+//  "org.zeromq" % "jzmq" % "3.1.0"
 
 TwirlKeys.templateImports += "dtos._"
 
@@ -131,5 +132,5 @@ useGpg := true
 
 credentials += Credentials(Path.userHome / ".m2" / ".credentials")
 
-ApiDocSettings.apiDocTask
+//ApiDocSettings.apiDocTask
 
