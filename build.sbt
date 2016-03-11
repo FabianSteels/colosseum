@@ -128,7 +128,7 @@ publishTo := {
     Some("releases" at releases)
 }
 
-useGpg := true
+//useGpg := true
 
 credentials += Credentials(Path.userHome / ".m2" / ".credentials")
 

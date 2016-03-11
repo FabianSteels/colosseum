@@ -46,15 +46,40 @@ public class PaasageModelDto extends ValidatableDto {
     public PaasageModel.Action action;
     public String xmiModelEncoded;
 
+    public void setName (String name) {
+        this.name = name;
+    }
+    public void setXmiModelEncoded (String xmiModelEncoded) {
+        this.xmiModelEncoded = xmiModelEncoded;
+    }
+
+
+    public void setState(PaasageModel.State state){
+        this.state = state;
+    }
+    public void setSubState (String subState) {
+        this.subState = subState;
+    }
+
+    public void setAction(PaasageModel.Action action){
+        this.action = action;
+    }
+
+    public String getName () { return this.name; }
     public PaasageModel.State getState()
     {
         return state;
     }
-
+    public String getSubState()
+    {
+        return subState;
+    }
     public PaasageModel.Action getAction()
     {
         return action;
     }
+
+    public String getMmiModelEncoded () { return this.xmiModelEncoded; }
 
     @Override public void validation() {
         validator(PaasageModel.Action.class).validate(action).withValidator(new NotNullValidator());

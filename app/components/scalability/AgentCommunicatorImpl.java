@@ -59,28 +59,34 @@ public class AgentCommunicatorImpl implements AgentCommunicator {
     TODO This probably won't work...
      */
     @Override public void removeMonitor(String className, String metricName, long interval, TimeUnit unit){
+/*
         Monitor monitor = Monitor.builder().sensorClassName(className).metricName(metricName).interval(interval, unit).build();
 
         //remove a Monitor
         controller.delete(monitor);
+*/
     }
 
     @Override public void addMonitor(String idMonitorInstance, String className, String metricName, long interval, TimeUnit unit){
+/*
         Monitor monitor = Monitor.builder().sensorClassName(className).metricName(
             metricName).interval(interval, unit).addContext("monitorinstance", idMonitorInstance).build();
 
         //create a new Monitor
         monitor = controller.create(monitor);
+*/
     }
 
     /*
     TODO This probably won't work...
      */
     @Override public void removeMonitorForComponent(String className, String metricName, long interval, TimeUnit unit, String componentId){
+/*
         Monitor monitor = Monitor.builder().sensorClassName(className).metricName(metricName).interval(interval, unit).addContext("component", componentId).build();
 
         //remove a Monitor
         controller.delete(monitor);
+*/
     }
 
     @Override public void removeMonitor(Monitor monitor) {
@@ -90,17 +96,20 @@ public class AgentCommunicatorImpl implements AgentCommunicator {
 
 
     @Override public void addMonitorForComponent(String idMonitorInstance, String className, String metricName, long interval, TimeUnit unit, String componentId){
+/*
         Monitor monitor = Monitor.builder().sensorClassName(className).metricName(
             metricName).interval(interval, unit).addContext("component", componentId).addContext("monitorinstance", idMonitorInstance).build();
 
         //create a new Monitor
         controller.create(monitor);
+*/
     }
 
     @Override public List<Monitor> getMonitorWithSameValues(String className, String metricName, String componentName) {
         List<Monitor> monitors = controller.getList();
         List<Monitor> result = new ArrayList<Monitor>();
 
+/*
         for(Monitor monitor : monitors){
             if (monitor.getSensorClassName().equals(className) &&
                 monitor.getMetricName().equals(metricName) &&
@@ -108,6 +117,7 @@ public class AgentCommunicatorImpl implements AgentCommunicator {
                 result.add(monitor);
             }
         }
+*/
 
         return result;
         //return new ArrayList<Monitor>();
@@ -124,16 +134,19 @@ public class AgentCommunicatorImpl implements AgentCommunicator {
     }
 
     @Override public boolean hasSameContext(Monitor mon, String contextKey, String contextValue){
+/*
         for(Context con : mon.getContexts()){
             if(con.getKey().equals(contextKey) && con.getValue().equals(contextValue)){
                 return true;
             }
         }
 
+*/
         return false;
     }
 
     @Override public Monitor copyValueFromMonitorInstance(Monitor m, MonitorInstance mi){
+/*
         for(Context c : m.getContexts()){
             if(c.getKey().equals("monitorinstance")){
                 c.setValue(mi.getId().toString());
@@ -147,6 +160,7 @@ public class AgentCommunicatorImpl implements AgentCommunicator {
         m.setSensorClassName(((RawMonitor)mi.getMonitor()).getSensorDescription().getClassName());
         m.setMetricName(((RawMonitor)mi.getMonitor()).getSensorDescription().getMetricName());
         m.setInterval(new Interval(((RawMonitor)mi.getMonitor()).getSchedule().getInterval(), ((RawMonitor)mi.getMonitor()).getSchedule().getTimeUnit().toString()));
+*/
         return m;
     }
 
