@@ -79,7 +79,7 @@ public class PaasageModelDto extends ValidatableDto {
         return action;
     }
 
-    public String getxmiModelEncoded () { return this.xmiModelEncoded; }
+    public String getXmiModelEncoded () { return this.xmiModelEncoded; }
 
     @Override public void validation() {
         validator(PaasageModel.Action.class).validate(action).withValidator(new NotNullValidator());
