@@ -62,4 +62,8 @@ public class KeyPairInCloud extends BaseCredentialScoped implements KeyPair {
     @Override public String cloudProviderId() {
         return SlashEncodedId.of(credential(), cloud(), keyPair).swordId();
     }
+    @Override public String providerId() {
+        return "";
+    }
+
 }

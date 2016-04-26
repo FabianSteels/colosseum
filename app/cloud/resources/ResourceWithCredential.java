@@ -65,6 +65,9 @@ public abstract class ResourceWithCredential extends BaseLocationScoped implemen
         return MoreObjects.toStringHelper(this).add("id", id()).add("name", name()).toString();
     }
 
+    @Override public String providerId() {
+        return "";
+    }
     @Override public boolean equals(Object o) {
         if (this == o)
             return true;

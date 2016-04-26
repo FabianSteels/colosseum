@@ -58,8 +58,8 @@ public class PaasageModel extends Model{
         CHOOSE_PLAN,                     // Plan being chosen by user
         DEPLOY,                          // Deployment started by user
         FINISH_DEPLOYMENT,               // Deployment finished ( by PaaSage)
-        RUN;                              // Application start requested by PaaSage
-
+        RUN,                             // Application start requested by PaaSage
+        NO_ACTION;                       // Used only to allow update of the state and substate
         public static Action  fromString(String name) {
             return getEnumFromString(Action.class, name);
         }

@@ -84,6 +84,10 @@ public class LocationInCloud extends BaseCredentialScoped implements Location {
         return SlashEncodedId.of(credential(), cloud(), location).swordId();
     }
 
+    @Override public String providerId() {
+        return "";
+    }
+
     @Override public String toString() {
         return MoreObjects.toStringHelper(this).add("id", id()).add("name", name()).toString();
     }

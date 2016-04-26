@@ -35,10 +35,11 @@ import models.PaasageModel;
 import models.Tenant;
 import models.service.FrontendUserService;
 import models.service.ModelService;
+import play.Logger;
 import play.mvc.Security;
 import components.messaging.MessagingServiceInterface;
 import components.messaging.PaasageMessage;
-
+import util.logging.Loggers;
 
 
 /**
@@ -48,6 +49,8 @@ import components.messaging.PaasageMessage;
  */
 @Security.Authenticated(SecuredToken.class)
 public class PaasageModelController extends GenericApiController<PaasageModel, PaasageModelDto, PaasageModelDto, PaasageModelDto> {
+
+    private final Logger.ALogger LOGGER = Loggers.of(Loggers.API);
 
     private static final StateMachineConfig<PaasageModel.State, PaasageModel.Action> passageModelStateConfigForUsers;
 
@@ -60,12 +63,14 @@ public class PaasageModelController extends GenericApiController<PaasageModel, P
                 .permit(PaasageModel.Action.UPLOAD_XMI, PaasageModel.State.READY_TO_REASON);
 
         passageModelStateConfigForUsers.configure(PaasageModel.State.READY_TO_REASON)
+                .permit(PaasageModel.Action.NO_ACTION, PaasageModel.State.READY_TO_REASON)
                 .permit(PaasageModel.Action.START_REASONNING,PaasageModel.State.REASONING);
 
         passageModelStateConfigForUsers.configure(PaasageModel.State.REASONING)
                 .permit(PaasageModel.Action.REASONNED_NO_PLAN, PaasageModel.State.NO_SOLUTION)
                 .permit(PaasageModel.Action.REASONNED_ONE_PLAN, PaasageModel.State.READY_TO_DEPLOY)
-                .permit(PaasageModel.Action.REASONNED_MULTI_PLANS,PaasageModel.State.READY_TO_CHOOSE);
+                .permit(PaasageModel.Action.REASONNED_MULTI_PLANS,PaasageModel.State.READY_TO_CHOOSE)
+                .permit(PaasageModel.Action.NO_ACTION, PaasageModel.State.REASONING);
 
         passageModelStateConfigForUsers.configure(PaasageModel.State.NO_SOLUTION)
                 .permit(PaasageModel.Action.UPLOAD_XMI, PaasageModel.State.READY_TO_REASON);
@@ -78,6 +83,7 @@ public class PaasageModelController extends GenericApiController<PaasageModel, P
                 .permit(PaasageModel.Action.DEPLOY, PaasageModel.State.DEPLOYING);
 
         passageModelStateConfigForUsers.configure(PaasageModel.State.DEPLOYING)
+                .permit(PaasageModel.Action.NO_ACTION, PaasageModel.State.DEPLOYING)
                 .permit(PaasageModel.Action.FINISH_DEPLOYMENT, PaasageModel.State.DEPLOYED);
 
         passageModelStateConfigForUsers.configure(PaasageModel.State.DEPLOYED)
@@ -188,6 +194,11 @@ public class PaasageModelController extends GenericApiController<PaasageModel, P
     @Override
     protected void postPut(PaasageModel updated) {
         PaasageMessage message = new PaasageMessage(updated.getId(), updated.getAction().toString());
+        if (updated.getAction().equals(PaasageModel.Action.NO_ACTION))
+        {
+            LOGGER.info("Action == NO_ACTION: just update the resource, to not publish message");
+            return;
+        }
         messagingService.publishMessage("PAASAGE", message);
     }
 }
