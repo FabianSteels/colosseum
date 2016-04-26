@@ -63,14 +63,14 @@ public class PaasageModelController extends GenericApiController<PaasageModel, P
                 .permit(PaasageModel.Action.UPLOAD_XMI, PaasageModel.State.READY_TO_REASON);
 
         passageModelStateConfigForUsers.configure(PaasageModel.State.READY_TO_REASON)
-                .permit(PaasageModel.Action.NO_ACTION, PaasageModel.State.READY_TO_REASON)
+                .ignore(PaasageModel.Action.NO_ACTION)
                 .permit(PaasageModel.Action.START_REASONNING,PaasageModel.State.REASONING);
 
         passageModelStateConfigForUsers.configure(PaasageModel.State.REASONING)
                 .permit(PaasageModel.Action.REASONNED_NO_PLAN, PaasageModel.State.NO_SOLUTION)
                 .permit(PaasageModel.Action.REASONNED_ONE_PLAN, PaasageModel.State.READY_TO_DEPLOY)
                 .permit(PaasageModel.Action.REASONNED_MULTI_PLANS,PaasageModel.State.READY_TO_CHOOSE)
-                .permit(PaasageModel.Action.NO_ACTION, PaasageModel.State.REASONING);
+                .ignore(PaasageModel.Action.NO_ACTION);
 
         passageModelStateConfigForUsers.configure(PaasageModel.State.NO_SOLUTION)
                 .permit(PaasageModel.Action.UPLOAD_XMI, PaasageModel.State.READY_TO_REASON);
@@ -83,7 +83,7 @@ public class PaasageModelController extends GenericApiController<PaasageModel, P
                 .permit(PaasageModel.Action.DEPLOY, PaasageModel.State.DEPLOYING);
 
         passageModelStateConfigForUsers.configure(PaasageModel.State.DEPLOYING)
-                .permit(PaasageModel.Action.NO_ACTION, PaasageModel.State.DEPLOYING)
+                .ignore(PaasageModel.Action.NO_ACTION)
                 .permit(PaasageModel.Action.FINISH_DEPLOYMENT, PaasageModel.State.DEPLOYED);
 
         passageModelStateConfigForUsers.configure(PaasageModel.State.DEPLOYED)
