@@ -20,15 +20,14 @@ package components.scalability;
 
 import de.uniulm.omi.cloudiator.visor.client.ClientBuilder;
 import de.uniulm.omi.cloudiator.visor.client.ClientController;
-import de.uniulm.omi.cloudiator.visor.client.entities.Context;
-import de.uniulm.omi.cloudiator.visor.client.entities.Interval;
-import de.uniulm.omi.cloudiator.visor.client.entities.Monitor;
+import de.uniulm.omi.cloudiator.visor.client.entities.*;
 import models.MonitorInstance;
 import models.RawMonitor;
 import models.generic.ExternalReference;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -55,140 +54,71 @@ public class AgentCommunicatorImpl implements AgentCommunicator {
 
     }
 
-    /*
-    TODO This probably won't work...
-     */
-    @Override public void removeMonitor(String className, String metricName, long interval, TimeUnit unit){
-/*
-        Monitor monitor = Monitor.builder().sensorClassName(className).metricName(metricName).interval(interval, unit).build();
+    @Override public void addSensorMonitor(String idMonitorInstance, String className, String metricName, long interval,
+                          TimeUnit unit, Map<String, String> configs)
+    {
+        return;
+     }
 
-        //remove a Monitor
-        controller.delete(monitor);
-*/
-    }
 
-    @Override public void addMonitor(String idMonitorInstance, String className, String metricName, long interval, TimeUnit unit){
-/*
-        Monitor monitor = Monitor.builder().sensorClassName(className).metricName(
-            metricName).interval(interval, unit).addContext("monitorinstance", idMonitorInstance).build();
-
-        //create a new Monitor
-        monitor = controller.create(monitor);
-*/
-    }
-
-    /*
-    TODO This probably won't work...
-     */
-    @Override public void removeMonitorForComponent(String className, String metricName, long interval, TimeUnit unit, String componentId){
-/*
-        Monitor monitor = Monitor.builder().sensorClassName(className).metricName(metricName).interval(interval, unit).addContext("component", componentId).build();
-
-        //remove a Monitor
-        controller.delete(monitor);
-*/
-    }
-
-    @Override public void removeMonitor(Monitor monitor) {
-        //remove a Monitor
-        controller.delete(monitor);
+    @Override public void removeSensorMonitor(String className, String metricName, long interval, TimeUnit unit)
+    {
+        return;
     }
 
 
-    @Override public void addMonitorForComponent(String idMonitorInstance, String className, String metricName, long interval, TimeUnit unit, String componentId){
-/*
-        Monitor monitor = Monitor.builder().sensorClassName(className).metricName(
-            metricName).interval(interval, unit).addContext("component", componentId).addContext("monitorinstance", idMonitorInstance).build();
-
-        //create a new Monitor
-        controller.create(monitor);
-*/
+    @Override public void removeSensorMonitorForComponent(String className, String metricName, long interval,
+                                         TimeUnit unit, String componentId)    {
+        return;
     }
 
-    @Override public List<Monitor> getMonitorWithSameValues(String className, String metricName, String componentName) {
-        List<Monitor> monitors = controller.getList();
-        List<Monitor> result = new ArrayList<Monitor>();
 
-/*
-        for(Monitor monitor : monitors){
-            if (monitor.getSensorClassName().equals(className) &&
-                monitor.getMetricName().equals(metricName) &&
-                checkForComponentContext(componentName, monitor.getContexts())){
-                result.add(monitor);
-            }
-        }
-*/
-
-        return result;
-        //return new ArrayList<Monitor>();
+    @Override public void removeSensorMonitor(SensorMonitor monitor)    {
+        return;
     }
 
-    @Override public void updateMonitor(MonitorInstance mi) {
-        List<Monitor> mons = controller.getList();
 
-        for(Monitor mon : mons){
-            if (hasSameContext(mon, "monitorinstance", mi.getId().toString())){
-                controller.update(copyValueFromMonitorInstance(mon, mi));
-            }
-        }
+    @Override public void addSensorMonitorForComponent(String idMonitorInstance, String className, String metricName,
+                                      long interval, TimeUnit unit, String componentId, Map<String, String> configs)    {
+        return;
     }
 
-    @Override public boolean hasSameContext(Monitor mon, String contextKey, String contextValue){
-/*
-        for(Context con : mon.getContexts()){
-            if(con.getKey().equals(contextKey) && con.getValue().equals(contextValue)){
-                return true;
-            }
-        }
 
-*/
+    @Override public List<SensorMonitor> getSensorMonitorWithSameValues(String className, String metricName,
+                                                       String componentName)
+    {
+        return null;
+    }
+
+
+    @Override public void updateSensorMonitor(MonitorInstance mi)    {
+        return;
+    }
+
+
+    @Override public boolean hasSameContext(Monitor mon, String contextKey, String contextValue)    {
         return false;
     }
 
-    @Override public Monitor copyValueFromMonitorInstance(Monitor m, MonitorInstance mi){
-/*
-        for(Context c : m.getContexts()){
-            if(c.getKey().equals("monitorinstance")){
-                c.setValue(mi.getId().toString());
-            }
-        }
 
-        for(ExternalReference er : mi.getExternalReferences()){
-            m.getContexts().add(new Context("er_" + er.getId(), er.getReference()));
-        }
-
-        m.setSensorClassName(((RawMonitor)mi.getMonitor()).getSensorDescription().getClassName());
-        m.setMetricName(((RawMonitor)mi.getMonitor()).getSensorDescription().getMetricName());
-        m.setInterval(new Interval(((RawMonitor)mi.getMonitor()).getSchedule().getInterval(), ((RawMonitor)mi.getMonitor()).getSchedule().getTimeUnit().toString()));
-*/
-        return m;
+    @Override public SensorMonitor copyValueFromMonitorInstance(SensorMonitor m, MonitorInstance mi)    {
+        return null;
     }
 
-    @Override public int getPort() {
-        return port;
+
+    @Override public int getPort()    {
+        return 1024;
     }
 
-    @Override public String getIp() {
-        return ip;
+
+    @Override public String getIp()
+    {
+        return "1.2.3.4";
     }
 
-    @Override public String getProtocol() {
-        return protocol;
+    @Override public String getProtocol()
+    {
+        return "tcp";
     }
 
-    private boolean checkForComponentContext(String componentName, List<Context> contexts) {
-        boolean isComponent = false;
-
-        if (componentName == null || componentName.equals("")){
-            isComponent = true;
-        } else {
-            for(Context context : contexts){
-                if(context.getKey().equals("component") && context.getValue().equals(componentName)){
-                    isComponent = true;
-                }
-            }
-        }
-
-        return isComponent;
-    }
 }

@@ -51,6 +51,10 @@ public class KeyPairInCloud extends BaseCredentialScoped implements KeyPair {
         return SlashEncodedId.of(credential(), cloud(), keyPair).userId();
     }
 
+    @Override public String providerId() {
+        return keyPair.providerId();
+    }
+
     @Override public String name() {
         return keyPair.name();
     }
@@ -59,11 +63,8 @@ public class KeyPairInCloud extends BaseCredentialScoped implements KeyPair {
         return SlashEncodedId.of(credential(), cloud(), keyPair).cloudId();
     }
 
-    @Override public String cloudProviderId() {
+    @Override public String swordId() {
         return SlashEncodedId.of(credential(), cloud(), keyPair).swordId();
-    }
-    @Override public String providerId() {
-        return "";
     }
 
 }

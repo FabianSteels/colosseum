@@ -49,6 +49,10 @@ public abstract class ResourceWithCredential extends BaseLocationScoped implemen
         return SlashEncodedId.of(credential(), cloud(), resource).userId();
     }
 
+    @Override public String providerId() {
+        return resource.providerId();
+    }
+
     @Override public String cloudId() {
         return SlashEncodedId.of(credential(), cloud(), resource).cloudId();
     }
@@ -57,7 +61,7 @@ public abstract class ResourceWithCredential extends BaseLocationScoped implemen
         return resource.name();
     }
 
-    @Override public String cloudProviderId() {
+    @Override public String swordId() {
         return SlashEncodedId.of(credential(), cloud(), resource).swordId();
     }
 
@@ -65,9 +69,6 @@ public abstract class ResourceWithCredential extends BaseLocationScoped implemen
         return MoreObjects.toStringHelper(this).add("id", id()).add("name", name()).toString();
     }
 
-    @Override public String providerId() {
-        return "";
-    }
     @Override public boolean equals(Object o) {
         if (this == o)
             return true;

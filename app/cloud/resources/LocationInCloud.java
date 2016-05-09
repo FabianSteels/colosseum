@@ -72,6 +72,10 @@ public class LocationInCloud extends BaseCredentialScoped implements Location {
         return SlashEncodedId.of(credential(), cloud(), location).userId();
     }
 
+    @Override public String providerId() {
+        return location.providerId();
+    }
+
     @Override public String name() {
         return location.name();
     }
@@ -80,13 +84,10 @@ public class LocationInCloud extends BaseCredentialScoped implements Location {
         return SlashEncodedId.of(credential(), cloud(), location).cloudId();
     }
 
-    @Override public String cloudProviderId() {
+    @Override public String swordId() {
         return SlashEncodedId.of(credential(), cloud(), location).swordId();
     }
 
-    @Override public String providerId() {
-        return "";
-    }
 
     @Override public String toString() {
         return MoreObjects.toStringHelper(this).add("id", id()).add("name", name()).toString();
